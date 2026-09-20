@@ -73,7 +73,19 @@ try
 
     # Run the language server.
     # Key: pass user_depot (not ls_depot) so SymbolServer can find user packages.
-    runserver(stdin, stdout, env_path, user_depot, nothing, symserver_store_path)
+    # The custom symbol-store argument was added after older supported
+    # LanguageServer.jl releases. Prefer it when available, but retain
+    # compatibility with the five-argument API.
+    try
+        runserver(stdin, stdout, env_path, user_depot, nothing, symserver_store_path)
+    catch e
+        if e isa MethodError && e.f === runserver
+            @info "LanguageServer.jl does not support a custom symbol store; using its default"
+            runserver(stdin, stdout, env_path, user_depot, nothing)
+        else
+            rethrow()
+        end
+    end
 catch e
     @error "Failed to start language server" exception = (e, catch_backtrace())
 
